@@ -2,38 +2,21 @@
 #include<stdlib.h>
 #include<ctype.h>
 #include<string.h>
-
-typedef enum{
-    SEMI,
-    OPEN_PAREN,
-    CLOSE_PAREN,
-} TypeSeperator;
-
-typedef enum{
-    EXIT,
-    DEFAULT,
-} TypeKeyword;
-
+const char *keyword_names[] = {"INT", "KEYWORD", "SEPARATOR"};
+int tokencount = 0;
 typedef enum{
     INT,
-    FLOAT,
-} TypeLiteral;
+    KEYWORD,
+    SEPARATOR,
+} TokenType;
 
-typedef struct {
-  TypeKeyword type;
-} TokenKeyword;
+typedef struct{
+    TokenType type;
+    char *value;
+} Token;
 
-typedef struct {
-  TypeLiteral type;
-  int value;
-} TokenLiteral;
-
-typedef struct {
-  TypeSeperator type;
-} TokenSeperator;
-
-TokenKeyword generate_keyword(char *current, FILE* file){
-    TokenKeyword token;
+Token generate_keyword(char *current, FILE* file){
+    Token token;
     char *keyword = malloc(100 * sizeof(char));
     int i = 0;
     while(*current != EOF && isalpha(*current)){
@@ -41,65 +24,78 @@ TokenKeyword generate_keyword(char *current, FILE* file){
         i++;
         *current = fgetc(file);
     }
-    char* target = "exit";
-    if (!strcmp(keyword, target)){
-        token.type = EXIT;
+    // char* target = "exit";
+    if (!strcmp(keyword, "exit")){
+        token.type = KEYWORD;
+        token.value = "EXIT";
     }
     else{
-        token.type = DEFAULT;
+        token.type = SEPARATOR;
     }
-
     return token;
 }
 
-TokenLiteral generate_literal(char *current, FILE* file){
-    TokenLiteral token;
+Token generate_number(char *current, FILE* file){
+    Token token;
     token.type = INT;
     char *value = malloc(100 * sizeof(char));
-    printf("FOUND NUMBER : ");
     int i = 0;
     while(*current != EOF && isdigit(*current)){
         value[i] = *current;
         i++;
         *current = fgetc(file);
     }
-    token.value = atoi(value);
+    token.value = value;
     return token;
 }
 
-// lexer converts the code into tokens
-void lexer(FILE *file){
-    char current = fgetc(file);
+// Printing all the tokens
+// void printTokens(Token *tokens){
 
+// }
+
+
+// lexer converts the code into tokens
+Token *lexer(FILE *file){
+    char current = fgetc(file);
+    Token *tokenarray = malloc(100*sizeof(Token));
+    int i = 0;
     while(current != EOF){
-        if(current == ';'){
-            printf("FOUND SEMICOLON\n");
-        }
-        else if (current == '(') {
-            printf("FOUND OPEN PAREN\n");
-        }
-        else if(current == ')'){
-            printf("FOUND CLOSED PAREN\n");
+        tokencount++;
+        if(current == ';' || current == '(' || current == ')'){
+            Token test_separator;
+            test_separator.type = SEPARATOR;
+            test_separator.value = malloc(2*sizeof(char));
+            test_separator.value[0] = current;
+            test_separator.value[1]='\0';
+            tokenarray[i] = test_separator;
         }
         else if(isdigit(current)){
             // return all the consecutive numbers as one whole number
             // printf("FOUND DIGIT : %d\n", (int)(current - '0') );
-            TokenLiteral token = generate_literal(&current, file);
-            printf("%d", token.value);
+            Token test_literal = generate_number(&current, file);
+            tokenarray[i] = test_literal;
+            i++;
             continue;
         }
         else if(isalpha(current)){
             // return all the consecutive characters as one whole string
-            // generate_string(&current, file);
-            TokenKeyword token = generate_keyword(&current, file);
-            printf("%d", token.type);
+            Token test_keyword = generate_keyword(&current, file);
+            tokenarray[i] = test_keyword;
+            i++;
             continue;
         }
         current = fgetc(file);
+        i++;
     }
+    return tokenarray;
 }
 int main(){
     FILE *file;
     file = fopen("test.unn", "r");
-    lexer(file);
+    Token *array = lexer(file);
+
+    for(int i=0; i<5; i++){
+        printf("%s", array[i].value);
+    }
 }
